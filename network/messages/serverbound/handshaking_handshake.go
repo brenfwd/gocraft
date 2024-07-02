@@ -5,8 +5,8 @@ import (
 
 	"github.com/brenfwd/gocraft/constants"
 	"github.com/brenfwd/gocraft/data"
-	"github.com/brenfwd/gocraft/ipc"
 	"github.com/brenfwd/gocraft/network/messages"
+	"github.com/brenfwd/gocraft/shared"
 )
 
 func init() {
@@ -21,11 +21,11 @@ type HandshakingServerboundHandshake struct {
 	NextState       data.VarInt
 }
 
-func (p *HandshakingServerboundHandshake) Handle(i *ipc.ClientIPC) error {
+func (p *HandshakingServerboundHandshake) Handle(c *shared.ClientShared) error {
 	nextStateDecode, validState := constants.ClientStateFromInt(int(p.NextState))
 	if !validState {
 		return fmt.Errorf("invalid next state %v", p.NextState)
 	}
-	i.ChangeState(nextStateDecode)
+	c.ChangeState(nextStateDecode)
 	return nil
 }

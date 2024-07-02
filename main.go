@@ -11,6 +11,7 @@ func unwrap(err error) {
 }
 
 func main() {
+
 	server, err := core.NewServer()
 	unwrap(err)
 

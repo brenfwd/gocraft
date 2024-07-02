@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"net"
+
+	"github.com/brenfwd/gocraft/network/encryption"
 )
 
 type Connection struct {
@@ -16,12 +18,19 @@ type Connection struct {
 	packetsSend  chan<- Packet
 	Packets      <-chan Packet
 	unmarshaller PacketUnmarshaller
+	Keypair      *encryption.KeypairBytes
 }
 
-func NewConnection(inner net.Conn) Connection {
+func MakeConnection(inner net.Conn, keypair *encryption.KeypairBytes) Connection {
 	eof := make(chan bool, 10)
 	packets := make(chan Packet, 10)
-	return Connection{inner: inner, eofSend: eof, Eof: eof, packetsSend: packets, Packets: packets}
+	return Connection{inner: inner,
+		eofSend:     eof,
+		Eof:         eof,
+		packetsSend: packets,
+		Packets:     packets,
+		Keypair:     keypair,
+	}
 }
 
 func (c *Connection) RemoteAddr() net.Addr {

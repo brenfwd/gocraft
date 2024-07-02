@@ -2,9 +2,9 @@ package messages
 
 import (
 	"github.com/brenfwd/gocraft/constants"
-	"github.com/brenfwd/gocraft/ipc"
 	"github.com/brenfwd/gocraft/network/messages"
 	"github.com/brenfwd/gocraft/network/messages/clientbound"
+	"github.com/brenfwd/gocraft/shared"
 )
 
 func init() {
@@ -16,7 +16,7 @@ type StatusServerboundPing struct {
 	Challenge int64
 }
 
-func (p *StatusServerboundPing) Handle(i *ipc.ClientIPC) error {
+func (p *StatusServerboundPing) Handle(c *shared.ClientShared) error {
 	res := clientbound.StatusClientboundPing{
 		Response: p.Challenge,
 	}
@@ -24,6 +24,6 @@ func (p *StatusServerboundPing) Handle(i *ipc.ClientIPC) error {
 	if err != nil {
 		return err
 	}
-	i.SendPacket(&encoded)
+	c.SendPacket(&encoded)
 	return nil
 }

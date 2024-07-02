@@ -2,6 +2,8 @@ package data
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/google/uuid"
 )
@@ -327,4 +329,77 @@ func (buf *Buffer) ReadUUID() (uuid.UUID, error) {
 
 func (buf *Buffer) WriteUUID(value uuid.UUID) error {
 	return buf.Write(value[:])
+}
+
+type BufferSliceLength string
+
+const (
+	BufferSliceLengthVarInt BufferSliceLength = "varint"
+)
+
+func (buf *Buffer) WriteSlice(value any, lengthType BufferSliceLength) (err error) {
+	t := reflect.TypeOf(value)
+	if t.Kind() != reflect.Slice {
+		return fmt.Errorf("value passed to WriteSlice is not a slice: %v", t.Kind())
+	}
+
+	reflected := reflect.ValueOf(value)
+	if err := buf.writeLength(lengthType, reflected.Len()); err != nil {
+		return err
+	}
+
+	for i := 0; i < reflected.Len(); i++ {
+		v := reflected.Index(i).Interface()
+		if err := buf.WriteAny(v); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (buf *Buffer) writeLength(lengthType BufferSliceLength, length int) error {
+	switch lengthType {
+	case BufferSliceLengthVarInt:
+		_, err := buf.WriteVarInt(VarInt(length))
+		return err
+	default:
+		return fmt.Errorf("unhandled length type for WriteSlice: %v", lengthType)
+	}
+}
+
+func (buf *Buffer) WriteAny(value any) error {
+	switch v := value.(type) {
+	case VarInt:
+		_, err := buf.WriteVarInt(v)
+		return err
+	case VarLong:
+		_, err := buf.WriteVarLong(v)
+		return err
+	case Chat:
+		s, err := v.String()
+		if err != nil {
+			return err
+		}
+		_, err = buf.WriteString(s)
+		return err
+	case uuid.UUID:
+		return buf.WriteUUID(v)
+	case string:
+		_, err := buf.WriteString(v)
+		return err
+	case bool:
+		return buf.WriteBoolean(v)
+	case byte:
+		return buf.WriteByte(v)
+	case uint16:
+		return buf.WriteUShort(v)
+	case int32:
+		return buf.WriteInt(v)
+	case int:
+		return buf.WriteInt(int32(v))
+	case int64:
+		return buf.WriteLong(v)
+	default:
+		return fmt.Errorf("unhandled type for WriteAny: %T", value)
+	}
 }

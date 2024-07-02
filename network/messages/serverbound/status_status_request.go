@@ -5,9 +5,9 @@ import (
 
 	"github.com/brenfwd/gocraft/constants"
 	"github.com/brenfwd/gocraft/data"
-	"github.com/brenfwd/gocraft/ipc"
 	"github.com/brenfwd/gocraft/network"
 	"github.com/brenfwd/gocraft/network/messages"
+	"github.com/brenfwd/gocraft/shared"
 )
 
 //go:embed tempresponse.json
@@ -21,13 +21,13 @@ type StatusServerboundStatusRequest struct {
 	messages.Serverbound
 }
 
-func (p *StatusServerboundStatusRequest) Handle(i *ipc.ClientIPC) error {
+func (p *StatusServerboundStatusRequest) Handle(c *shared.ClientShared) error {
 	var wbuf data.Buffer
 	_, err := wbuf.WriteString(tempresponse)
 	if err != nil {
 		return err
 	}
 	outPacket := network.Packet{Id: 0, Body: wbuf.Raw}
-	i.SendPacket(&outPacket)
+	c.SendPacket(&outPacket)
 	return nil
 }

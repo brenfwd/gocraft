@@ -5,19 +5,19 @@ import (
 	"sync"
 
 	"github.com/brenfwd/gocraft/constants"
-	"github.com/brenfwd/gocraft/ipc"
 	"github.com/brenfwd/gocraft/network"
 	"github.com/brenfwd/gocraft/network/messages"
+	"github.com/brenfwd/gocraft/shared"
 )
 
 type Client struct {
-	IPC        ipc.ClientIPC
+	Shared     *shared.ClientShared
 	State      constants.ClientState
 	connection network.Connection
 }
 
 func NewClient(connection network.Connection) Client {
-	return Client{IPC: ipc.NewClient(), State: constants.ClientStateHandshaking, connection: connection}
+	return Client{Shared: shared.NewClientShared(connection.Keypair), State: constants.ClientStateHandshaking, connection: connection}
 }
 
 func (c *Client) processPacket(packet *network.Packet) error {
@@ -28,7 +28,7 @@ func (c *Client) processPacket(packet *network.Packet) error {
 		return err
 	}
 
-	if err := decoded.Handle(&c.IPC); err != nil {
+	if err := decoded.Handle(c.Shared); err != nil {
 		return err
 	}
 
@@ -49,13 +49,13 @@ func (c *Client) Handle() {
 		// Process pending IPC messages first
 		for more_ipc := true; more_ipc; {
 			select {
-			case msg := <-c.IPC.C:
-				if inner, ok := (*msg).(ipc.ClientChangeState); ok {
+			case msg := <-c.Shared.C:
+				if inner, ok := (*msg).(shared.ClientChangeState); ok {
 					log.Printf("Changing state to %v", inner.NewState)
 					c.State = inner.NewState
-				} else if inner, ok := (*msg).(ipc.ClientSend); ok {
+				} else if inner, ok := (*msg).(shared.ClientSend); ok {
 					log.Printf("Sending packet with ID 0x%02x (%d)", inner.Packet.Id, inner.Packet.Id)
-					log.Println(string(inner.Packet.Body))
+					log.Println(inner.Packet.Body)
 					if err := c.connection.WritePacket(inner.Packet); err != nil {
 						log.Println("error sending packet in response to IPC Send:", err)
 						goto end

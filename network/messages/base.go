@@ -4,25 +4,22 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/brenfwd/gocraft/constants"
 	"github.com/brenfwd/gocraft/data"
-	"github.com/brenfwd/gocraft/ipc"
 	"github.com/brenfwd/gocraft/network"
+	"github.com/brenfwd/gocraft/shared"
 	"github.com/google/uuid"
 )
 
 type ServerboundInterface interface {
-	Handle(*ipc.ClientIPC) error
+	Handle(*shared.ClientShared) error
 }
 
 type Serverbound struct{}
 
 type Clientbound struct{}
-
-// func (*Serverbound) Handle(*ipc.Client) {
-// 	fmt.Println("Hello from Base.Handle()!")
-// }
 
 // Serverbound message registry
 type serverboundRegistryKey struct {
@@ -47,6 +44,8 @@ func LookupServerbound(state constants.ClientState, id int) (reflect.Type, bool)
 }
 
 func DecodeServerbound(state constants.ClientState, packet *network.Packet) (ServerboundInterface, error) {
+	// TODO: move to buffer like with WriteAny...
+	// TODO: handle slice types
 	t, found := LookupServerbound(state, packet.Id)
 	if !found {
 		return nil, fmt.Errorf("could not find handler for packet in state %v with ID 0x%02x (%d) -- did you forget to call RegisterServerbound?", state, packet.Id, packet.Id)
@@ -140,57 +139,28 @@ func Encode[T any](msg *T) (network.Packet, error) {
 
 		value := reflect.ValueOf(msg).Elem().Field(i).Interface()
 
-		switch f.Type {
-		case reflect.TypeFor[data.VarInt]():
-			_, err := wbuf.WriteVarInt(value.(data.VarInt))
-			if err != nil {
-				return network.Packet{}, err
+		// First we have to handle slice types
+		if f.Type.Kind() == reflect.Slice {
+			// For slices, a tag must be set: `message:"length,<ltype>"`
+			// where <ltype> is one of { varint }
+			tag, ok := f.Tag.Lookup("message")
+			if !ok {
+				return network.Packet{}, fmt.Errorf("packet %v field %v is a slice type but is missing a `message:\"length...\" tag", t, f)
 			}
-		case reflect.TypeFor[data.VarLong]():
-			_, err := wbuf.WriteVarLong(value.(data.VarLong))
-			if err != nil {
-				return network.Packet{}, err
-			}
-		case reflect.TypeFor[data.Chat]():
-			local := value.(data.Chat)
-			str, err := local.String()
-			if err != nil {
-				return network.Packet{}, err
-			}
-			_, err = wbuf.WriteString(str)
-			if err != nil {
-				return network.Packet{}, err
-			}
-		case reflect.TypeFor[uuid.UUID]():
-			err := wbuf.WriteUUID(value.(uuid.UUID))
-			if err != nil {
-				return network.Packet{}, err
-			}
-		default:
-			switch f.Type.Kind() {
-			case reflect.String:
-				_, err := wbuf.WriteString(value.(string))
+			const lengthPrefix string = "length:"
+			suffix, ok := strings.CutPrefix(tag, lengthPrefix)
+			if ok {
+				err := wbuf.WriteSlice(value, data.BufferSliceLength(suffix))
 				if err != nil {
 					return network.Packet{}, err
 				}
-			case reflect.Uint16:
-				err := wbuf.WriteUShort(value.(uint16))
-				if err != nil {
-					return network.Packet{}, err
-				}
-			case reflect.Int:
-			case reflect.Int32:
-				err := wbuf.WriteInt(value.(int32))
-				if err != nil {
-					return network.Packet{}, err
-				}
-			case reflect.Int64:
-				err := wbuf.WriteLong(value.(int64))
-				if err != nil {
-					return network.Packet{}, err
-				}
-			default:
-				return network.Packet{}, fmt.Errorf("unhandled type %v with kind %v", f.Type, f.Type.Kind())
+			} else {
+				return network.Packet{}, fmt.Errorf("packet %v field %v tag has unknown contents", t, f)
+			}
+		} else {
+			err := wbuf.WriteAny(value)
+			if err != nil {
+				return network.Packet{}, err
 			}
 		}
 	}
