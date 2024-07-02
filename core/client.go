@@ -39,6 +39,21 @@ func (c *Client) processPacket(packet *network.Packet) error {
 	return nil
 }
 
+func (c *Client) handleSharedMessage(msg *shared.ClientMessage) error {
+	switch inner := (*msg).(type) {
+	case shared.ClientChangeState:
+		log.Printf("Changing state to %v", inner.NewState)
+		c.State = inner.NewState
+	case shared.ClientSend:
+		log.Printf("Sending packet with ID 0x%02x (%d)", inner.Packet.Id, inner.Packet.Id)
+		log.Println(inner.Packet.Body)
+		if err := c.connection.WritePacket(inner.Packet); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *Client) Handle() {
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -54,23 +69,16 @@ func (c *Client) Handle() {
 		for more_ipc := true; more_ipc; {
 			select {
 			case msg := <-c.Shared.C:
-				if inner, ok := (*msg).(shared.ClientChangeState); ok {
-					log.Printf("Changing state to %v", inner.NewState)
-					c.State = inner.NewState
-				} else if inner, ok := (*msg).(shared.ClientSend); ok {
-					log.Printf("Sending packet with ID 0x%02x (%d)", inner.Packet.Id, inner.Packet.Id)
-					log.Println(inner.Packet.Body)
-					if err := c.connection.WritePacket(inner.Packet); err != nil {
-						log.Println("error sending packet in response to IPC Send:", err)
-						goto end
-					}
+				if err := c.handleSharedMessage(msg); err != nil {
+					log.Println("Error handling shared message:", err)
+					goto end
 				}
 			default:
 				more_ipc = false
 			}
 		}
 
-		// Then process network packets & events
+		// Then process network packets & events and later IPC messages
 		select {
 		case <-c.connection.Eof:
 			log.Println("EOF", c.connection.RemoteAddr())
@@ -81,8 +89,17 @@ func (c *Client) Handle() {
 				log.Println("Error processing packet:", err)
 				goto end
 			}
+		case msg := <-c.Shared.C:
+			// in this case, we should handle this message immediately
+			// but then continue to the next iteration of the outer loop
+			// to handle any further IPC messages
+			if err := c.handleSharedMessage(msg); err != nil {
+				log.Println("Error handling shared message:", err)
+				goto end
+			}
 		}
 	}
+
 end:
 	c.connection.Close()
 }

@@ -23,11 +23,15 @@ type LoginServerboundLoginStart struct {
 func (p *LoginServerboundLoginStart) Handle(c *shared.ClientShared) error {
 	log.Println(p)
 
+	// TODO: validate username with regex...
+	c.AllegedUsername = p.Name
+	c.AllegedUUID = p.PlayerUUID
+
 	res := clientbound.LoginEncryptionRequest{
 		ServerID:           "",
 		PublicKey:          c.ListenerKeypair.PublicKey,
 		VerifyToken:        c.EncryptionVerifyToken[:],
-		ShouldAuthenticate: true,
+		ShouldAuthenticate: false, // TODO: implement authentication with Mojang servers
 	}
 	encoded, err := messages.Encode(&res)
 	if err != nil {

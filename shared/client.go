@@ -6,6 +6,7 @@ import (
 	"github.com/brenfwd/gocraft/constants"
 	"github.com/brenfwd/gocraft/network"
 	"github.com/brenfwd/gocraft/network/encryption"
+	"github.com/google/uuid"
 )
 
 type ClientMessage interface{}
@@ -13,6 +14,8 @@ type ClientShared struct {
 	C                     chan *ClientMessage
 	ListenerKeypair       *encryption.KeypairBytes
 	EncryptionVerifyToken [4]byte
+	AllegedUsername       string
+	AllegedUUID           uuid.UUID
 }
 
 type ClientChangeState struct {

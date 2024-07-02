@@ -19,6 +19,6 @@ type LoginEncryptionResponse struct {
 }
 
 func (p *LoginEncryptionResponse) Handle(c *shared.ClientShared) error {
-	fmt.Println(p)
+	fmt.Printf("%+v\n", p)
 	return nil
 }
