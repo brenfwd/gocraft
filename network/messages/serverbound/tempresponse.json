@@ -1,0 +1,21 @@
+{
+  "version": {
+    "name": "1.21",
+    "protocol": 767
+  },
+  "players": {
+    "online": 0,
+    "max": 100,
+    "sample": []
+  },
+  "description": {
+    "text": "GoCraft 1.21!\n",
+    "color": "gray",
+    "extra": [
+      {
+        "text": "Now with 100% more golang",
+        "color": "aqua"
+      }
+    ]
+  }
+}
