@@ -337,6 +337,68 @@ const (
 	BufferSliceLengthVarInt BufferSliceLength = "varint"
 )
 
+func (buf *Buffer) ReadReflectedSlice(elemType reflect.Type, lengthType BufferSliceLength) (value reflect.Value, err error) {
+	length, err := buf.readLength(lengthType)
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	slice := reflect.MakeSlice(reflect.SliceOf(elemType), length, length)
+	for i := 0; i < length; i++ {
+		v, err := buf.ReadReflected(elemType)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		slice.Index(i).Set(v)
+	}
+	return slice, nil
+}
+
+func (buf *Buffer) ReadReflected(t reflect.Type) (value reflect.Value, err error) {
+	if t.Kind() == reflect.Slice {
+		return buf.ReadReflectedSlice(t, BufferSliceLengthVarInt)
+	}
+	var v any
+	switch t {
+	case reflect.TypeFor[VarInt]():
+		v, _, err = buf.ReadVarInt()
+	case reflect.TypeFor[VarLong]():
+		v, _, err = buf.ReadVarLong()
+	case reflect.TypeFor[uuid.UUID]():
+		v, err = buf.ReadUUID()
+	case reflect.TypeFor[string]():
+		v, _, err = buf.ReadString()
+	case reflect.TypeFor[bool]():
+		v, err = buf.ReadBoolean()
+	case reflect.TypeFor[byte]():
+		v, err = buf.ReadByte()
+	case reflect.TypeFor[uint16]():
+		v, err = buf.ReadUShort()
+	case reflect.TypeFor[int32]():
+		v, err = buf.ReadInt()
+	case reflect.TypeFor[int]():
+		v, err = buf.ReadInt()
+	case reflect.TypeFor[int64]():
+		v, err = buf.ReadLong()
+	default:
+		err = fmt.Errorf("unhandled type %v with kind %v", t, t.Kind())
+	}
+	if err != nil {
+		return reflect.Value{}, err
+	}
+	return reflect.ValueOf(v), nil
+}
+
+func (buf *Buffer) readLength(lengthType BufferSliceLength) (int, error) {
+	switch lengthType {
+	case BufferSliceLengthVarInt:
+		v, _, err := buf.ReadVarInt()
+		return int(v), err
+	default:
+		return 0, fmt.Errorf("unhandled length type for ReadSlice: %v", lengthType)
+	}
+}
+
 func (buf *Buffer) WriteSlice(value any, lengthType BufferSliceLength) (err error) {
 	t := reflect.TypeOf(value)
 	if t.Kind() != reflect.Slice {

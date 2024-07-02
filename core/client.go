@@ -17,7 +17,11 @@ type Client struct {
 }
 
 func NewClient(connection network.Connection) Client {
-	return Client{Shared: shared.NewClientShared(connection.Keypair), State: constants.ClientStateHandshaking, connection: connection}
+	return Client{
+		Shared:     shared.NewClientShared(connection.Keypair),
+		State:      constants.ClientStateHandshaking,
+		connection: connection,
+	}
 }
 
 func (c *Client) processPacket(packet *network.Packet) error {

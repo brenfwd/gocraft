@@ -13,6 +13,7 @@ type Server struct {
 }
 
 func NewServer() (Server, error) {
+	log.Println("gocraft server is starting...")
 	listener, err := network.NewListener("0.0.0.0", 25565)
 	if err != nil {
 		return Server{}, err
@@ -33,8 +34,6 @@ func (s *Server) Close() error {
 func (s *Server) Run() {
 	var wg sync.WaitGroup
 	defer wg.Wait()
-
-	log.Println("gocraft server is starting...")
 
 	// Start listener
 	wg.Add(1)

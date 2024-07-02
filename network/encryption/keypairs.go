@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"log"
 )
 
 type KeypairBytes struct {
@@ -27,6 +28,8 @@ func MakeKeypairBytes() (KeypairBytes, error) {
 	if err != nil {
 		return KeypairBytes{}, err
 	}
+
+	log.Printf("Generated %d-bit RSA keypair\n", bitSize)
 
 	return KeypairBytes{
 		PublicKey:  publicKeyBytes,

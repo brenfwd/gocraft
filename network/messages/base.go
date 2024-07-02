@@ -10,7 +10,6 @@ import (
 	"github.com/brenfwd/gocraft/data"
 	"github.com/brenfwd/gocraft/network"
 	"github.com/brenfwd/gocraft/shared"
-	"github.com/google/uuid"
 )
 
 type ServerboundInterface interface {
@@ -64,38 +63,31 @@ func DecodeServerbound(state constants.ClientState, packet *network.Packet) (Ser
 		}
 
 		target := msg.Elem().Field(i)
-		var value any
-		var err error
 
-		switch f.Type {
-		case reflect.TypeFor[data.VarInt]():
-			value, _, err = buf.ReadVarInt()
-		case reflect.TypeFor[data.VarLong]():
-			value, _, err = buf.ReadVarLong()
-		case reflect.TypeFor[uuid.UUID]():
-			value, err = buf.ReadUUID()
-		default:
-			switch f.Type.Kind() {
-			// TODO: other types (float, bool...)
-			case reflect.String:
-				value, _, err = buf.ReadString()
-			case reflect.Uint16:
-				value, err = buf.ReadUShort()
-			case reflect.Int:
-			case reflect.Int32:
-				value, err = buf.ReadInt()
-			case reflect.Int64:
-				value, err = buf.ReadLong()
-			default:
-				err = fmt.Errorf("unhandled type %v with kind %v", f.Type, f.Type.Kind())
+		if f.Type.Kind() == reflect.Slice {
+			tag, ok := f.Tag.Lookup("message")
+			if !ok {
+				return nil, fmt.Errorf("packet %v field %v is a slice type but is missing a `message:\"length...\" tag", t, f)
 			}
+			const lengthPrefix string = "length:"
+			suffix, ok := strings.CutPrefix(tag, lengthPrefix)
+			if ok {
+				value, err := buf.ReadReflectedSlice(f.Type.Elem(), data.BufferSliceLength(suffix))
+				if err != nil {
+					return nil, err
+				}
+				target.Set(value)
+				continue
+			} else {
+				return nil, fmt.Errorf("packet %v field %v tag has unknown contents", t, f)
+			}
+		} else {
+			value, err := buf.ReadReflected(f.Type)
+			if err != nil {
+				return nil, err
+			}
+			target.Set(value)
 		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		target.Set(reflect.ValueOf(value))
 	}
 
 	return msg.Interface().(ServerboundInterface), nil
