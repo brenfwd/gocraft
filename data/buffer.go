@@ -24,9 +24,8 @@ func (buf *Buffer) Empty() bool {
 	return len(buf.Raw) == 0
 }
 
-func (buf *Buffer) Write(data []byte) error {
+func (buf *Buffer) Write(data []byte) {
 	buf.Raw = append(buf.Raw, data...)
-	return nil
 }
 
 func (buf *Buffer) Read(length int) ([]byte, error) {
@@ -47,9 +46,8 @@ func (buf *Buffer) ReadByte() (byte, error) {
 	return first, nil
 }
 
-func (buf *Buffer) WriteByte(b byte) error {
+func (buf *Buffer) Push(b byte) {
 	buf.Raw = append(buf.Raw, b)
-	return nil
 }
 
 func (buf *Buffer) ReadBoolean() (bool, error) {
@@ -67,13 +65,12 @@ func (buf *Buffer) ReadBoolean() (bool, error) {
 	}
 }
 
-func (buf *Buffer) WriteBoolean(v bool) error {
+func (buf *Buffer) WriteBoolean(v bool) {
 	if v {
-		buf.WriteByte(0x01)
+		buf.Push(0x01)
 	} else {
-		buf.WriteByte(0x00)
+		buf.Push(0x00)
 	}
-	return nil
 }
 
 func (buf *Buffer) ReadUByte() (uint8, error) {
@@ -81,8 +78,8 @@ func (buf *Buffer) ReadUByte() (uint8, error) {
 	return uint8(v), err
 }
 
-func (buf *Buffer) WriteUByte(v uint8) error {
-	return buf.WriteByte(byte(v))
+func (buf *Buffer) WriteUByte(v uint8) {
+	buf.Push(byte(v))
 }
 
 func (buf *Buffer) ReadShort() (int16, error) {
@@ -94,10 +91,9 @@ func (buf *Buffer) ReadShort() (int16, error) {
 	return v, nil
 }
 
-func (buf *Buffer) WriteShort(v int16) error {
-	buf.WriteByte(byte(v >> 8))
-	buf.WriteByte(byte(v))
-	return nil
+func (buf *Buffer) WriteShort(v int16) {
+	buf.Push(byte(v >> 8))
+	buf.Push(byte(v))
 }
 
 func (buf *Buffer) ReadUShort() (uint16, error) {
@@ -105,8 +101,8 @@ func (buf *Buffer) ReadUShort() (uint16, error) {
 	return uint16(v), err
 }
 
-func (buf *Buffer) WriteUShort(v uint16) error {
-	return buf.WriteShort(int16(v))
+func (buf *Buffer) WriteUShort(v uint16) {
+	buf.WriteShort(int16(v))
 }
 
 func (buf *Buffer) ReadInt() (int32, error) {
@@ -118,19 +114,11 @@ func (buf *Buffer) ReadInt() (int32, error) {
 	return v, nil
 }
 
-func (buf *Buffer) WriteInt(v int32) error {
-	var errs []error
-	errs = append(errs, buf.WriteByte(byte(v>>24)))
-	errs = append(errs, buf.WriteByte(byte(v>>16)))
-	errs = append(errs, buf.WriteByte(byte(v>>8)))
-	errs = append(errs, buf.WriteByte(byte(v)))
-
-	for _, err := range errs {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (buf *Buffer) WriteInt(v int32) {
+	buf.Push(byte(v >> 24))
+	buf.Push(byte(v >> 16))
+	buf.Push(byte(v >> 8))
+	buf.Push(byte(v))
 }
 
 func (buf *Buffer) ReadUInt() (uint32, error) {
@@ -138,8 +126,8 @@ func (buf *Buffer) ReadUInt() (uint32, error) {
 	return uint32(v), err
 }
 
-func (buf *Buffer) WriteUInt(v uint32) error {
-	return buf.WriteInt(int32(v))
+func (buf *Buffer) WriteUInt(v uint32) {
+	buf.WriteInt(int32(v))
 }
 
 func (buf *Buffer) ReadLong() (int64, error) {
@@ -151,23 +139,15 @@ func (buf *Buffer) ReadLong() (int64, error) {
 	return v, nil
 }
 
-func (buf *Buffer) WriteLong(v int64) error {
-	var errs []error
-	errs = append(errs, buf.WriteByte(byte(v>>56)))
-	errs = append(errs, buf.WriteByte(byte(v>>48)))
-	errs = append(errs, buf.WriteByte(byte(v>>40)))
-	errs = append(errs, buf.WriteByte(byte(v>>32)))
-	errs = append(errs, buf.WriteByte(byte(v>>24)))
-	errs = append(errs, buf.WriteByte(byte(v>>16)))
-	errs = append(errs, buf.WriteByte(byte(v>>8)))
-	errs = append(errs, buf.WriteByte(byte(v)))
-
-	for _, err := range errs {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (buf *Buffer) WriteLong(v int64) {
+	buf.Push(byte(v >> 56))
+	buf.Push(byte(v >> 48))
+	buf.Push(byte(v >> 40))
+	buf.Push(byte(v >> 32))
+	buf.Push(byte(v >> 24))
+	buf.Push(byte(v >> 16))
+	buf.Push(byte(v >> 8))
+	buf.Push(byte(v))
 }
 
 func (buf *Buffer) ReadULong() (uint64, error) {
@@ -175,8 +155,8 @@ func (buf *Buffer) ReadULong() (uint64, error) {
 	return uint64(v), err
 }
 
-func (buf *Buffer) WriteULong(v uint64) error {
-	return buf.WriteLong(int64(v))
+func (buf *Buffer) WriteULong(v uint64) {
+	buf.WriteLong(int64(v))
 }
 
 func (buf *Buffer) ReadFloat() (float32, error) {
@@ -184,8 +164,8 @@ func (buf *Buffer) ReadFloat() (float32, error) {
 	return float32(v), err
 }
 
-func (buf *Buffer) WriteFloat(v float32) error {
-	return buf.WriteUInt(uint32(v))
+func (buf *Buffer) WriteFloat(v float32) {
+	buf.WriteUInt(uint32(v))
 }
 
 func (buf *Buffer) ReadDouble() (float64, error) {
@@ -193,8 +173,8 @@ func (buf *Buffer) ReadDouble() (float64, error) {
 	return float64(v), err
 }
 
-func (buf *Buffer) WriteDouble(v float64) error {
-	return buf.WriteULong(uint64(v))
+func (buf *Buffer) WriteDouble(v float64) {
+	buf.WriteULong(uint64(v))
 }
 
 func (buf *Buffer) ReadVarInt() (value VarInt, bytes int, err error) {
@@ -222,18 +202,14 @@ func (buf *Buffer) ReadVarInt() (value VarInt, bytes int, err error) {
 	return
 }
 
-func (buf *Buffer) WriteVarInt(v VarInt) (bytes int, err error) {
+func (buf *Buffer) WriteVarInt(v VarInt) (bytes int) {
 	for {
 		if v&^0x7F == 0 {
-			if err = buf.WriteByte(byte(v)); err != nil {
-				return
-			}
+			buf.Push(byte(v))
 			bytes++
 			break
 		}
-		if err = buf.WriteByte(byte(v&0x7F | 0x80)); err != nil {
-			return
-		}
+		buf.Push(byte(v&0x7F | 0x80))
 		bytes++
 		v = VarInt(uint32(v) >> 7)
 	}
@@ -265,18 +241,14 @@ func (buf *Buffer) ReadVarLong() (value VarLong, bytes int, err error) {
 	return
 }
 
-func (buf *Buffer) WriteVarLong(v VarLong) (bytes int, err error) {
+func (buf *Buffer) WriteVarLong(v VarLong) (bytes int) {
 	for {
 		if v&^0x7F == 0 {
-			if err = buf.WriteByte(byte(v)); err != nil {
-				return
-			}
+			buf.Push(byte(v))
 			bytes++
 			break
 		}
-		if err = buf.WriteByte(byte(v&0x7F | 0x80)); err != nil {
-			return
-		}
+		buf.Push(byte(v&0x7F | 0x80))
 		bytes++
 		v = VarLong(uint64(v) >> 7)
 	}
@@ -306,12 +278,8 @@ func (buf *Buffer) ReadString() (value string, bytes int, err error) {
 	return
 }
 
-func (buf *Buffer) WriteString(str string) (bytes int, err error) {
-	var lbytes int
-	lbytes, err = buf.WriteVarInt(VarInt(len(str)))
-	if err != nil {
-		return
-	}
+func (buf *Buffer) WriteString(str string) (bytes int) {
+	lbytes := buf.WriteVarInt(VarInt(len(str)))
 	bytes += lbytes
 	strbytes := []byte(str)
 	buf.Raw = append(buf.Raw, strbytes...)
@@ -327,8 +295,16 @@ func (buf *Buffer) ReadUUID() (uuid.UUID, error) {
 	return uuid.FromBytes(bytes)
 }
 
-func (buf *Buffer) WriteUUID(value uuid.UUID) error {
-	return buf.Write(value[:])
+func (buf *Buffer) WriteUUID(value uuid.UUID) {
+	buf.Write(value[:])
+}
+
+type BufferWritable interface {
+	BufferWrite(*Buffer)
+}
+
+type BufferReadable[T any] interface {
+	BufferRead(*Buffer) (T, error)
 }
 
 type BufferSliceLength string
@@ -355,6 +331,23 @@ func (buf *Buffer) ReadReflectedSlice(elemType reflect.Type, lengthType BufferSl
 }
 
 func (buf *Buffer) ReadReflected(t reflect.Type) (value reflect.Value, err error) {
+	// Check if value implements BufferReadable[T] for some T...
+	if t.Implements(reflect.TypeFor[BufferReadable[any]]()) {
+		readMethod := reflect.ValueOf(value).MethodByName("BufferRead")
+		if !readMethod.IsValid() {
+			return reflect.Value{}, fmt.Errorf("BufferReadable type %v does not have a BufferRead method", t)
+		}
+		args := []reflect.Value{reflect.ValueOf(buf)}
+		results := readMethod.Call(args)
+		if len(results) != 2 {
+			return reflect.Value{}, fmt.Errorf("BufferReadable type %v BufferRead method did not return 2 values", t)
+		}
+		if !results[1].IsNil() {
+			return reflect.Value{}, results[1].Interface().(error)
+		}
+		return results[0], nil
+	}
+
 	if t.Kind() == reflect.Slice {
 		return buf.ReadReflectedSlice(t, BufferSliceLengthVarInt)
 	}
@@ -422,45 +415,57 @@ func (buf *Buffer) WriteSlice(value any, lengthType BufferSliceLength) (err erro
 func (buf *Buffer) writeLength(lengthType BufferSliceLength, length int) error {
 	switch lengthType {
 	case BufferSliceLengthVarInt:
-		_, err := buf.WriteVarInt(VarInt(length))
-		return err
+		buf.WriteVarInt(VarInt(length))
+		return nil
 	default:
 		return fmt.Errorf("unhandled length type for WriteSlice: %v", lengthType)
 	}
 }
 
 func (buf *Buffer) WriteAny(value any) error {
+	if writable, ok := value.(BufferWritable); ok {
+		writable.BufferWrite(buf)
+		return nil
+	}
+
 	switch v := value.(type) {
 	case VarInt:
-		_, err := buf.WriteVarInt(v)
-		return err
+		buf.WriteVarInt(v)
+		return nil
 	case VarLong:
-		_, err := buf.WriteVarLong(v)
-		return err
+		buf.WriteVarLong(v)
+		return nil
 	case Chat:
 		s, err := v.String()
 		if err != nil {
 			return err
 		}
-		_, err = buf.WriteString(s)
-		return err
+		buf.WriteString(s)
+		return nil
 	case uuid.UUID:
-		return buf.WriteUUID(v)
+		buf.WriteUUID(v)
+		return nil
 	case string:
-		_, err := buf.WriteString(v)
-		return err
+		buf.WriteString(v)
+		return nil
 	case bool:
-		return buf.WriteBoolean(v)
+		buf.WriteBoolean(v)
+		return nil
 	case byte:
-		return buf.WriteByte(v)
+		buf.Push(v)
+		return nil
 	case uint16:
-		return buf.WriteUShort(v)
+		buf.WriteUShort(v)
+		return nil
 	case int32:
-		return buf.WriteInt(v)
+		buf.WriteInt(v)
+		return nil
 	case int:
-		return buf.WriteInt(int32(v))
+		buf.WriteInt(int32(v))
+		return nil
 	case int64:
-		return buf.WriteLong(v)
+		buf.WriteLong(v)
+		return nil
 	default:
 		return fmt.Errorf("unhandled type for WriteAny: %T", value)
 	}

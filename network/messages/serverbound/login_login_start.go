@@ -1,4 +1,4 @@
-package messages
+package serverbound
 
 import (
 	"log"
@@ -38,6 +38,17 @@ func (p *LoginServerboundLoginStart) Handle(c *shared.ClientShared) error {
 		return err
 	}
 	c.SendPacket(&encoded)
+
+	// res := clientbound.LoginSuccess{
+	// 	UUID:       c.AllegedUUID,
+	// 	Username:   c.AllegedUsername,
+	// 	Properties: []clientbound.LoginSuccess_Property{},
+	// }
+	// encoded, err := messages.Encode(&res)
+	// if err != nil {
+	// 	return err
+	// }
+	// c.SendPacket(&encoded)
 
 	return nil
 }

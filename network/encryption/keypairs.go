@@ -36,3 +36,16 @@ func MakeKeypairBytes() (KeypairBytes, error) {
 		PrivateKey: privateKeyBytes,
 	}, nil
 }
+
+// Decrypts data **in-place** using the server private key using `rsa.DecryptPKCS1v15`.
+// Requires data to have been encrypted using the server public key.
+func (kp *KeypairBytes) DecryptWithPrivateKey(data *[]byte) error {
+	block, _ := x509.ParsePKCS1PrivateKey(kp.PrivateKey)
+	decrypted, err := rsa.DecryptPKCS1v15(nil, block, *data)
+	if err != nil {
+		return err
+	}
+
+	*data = decrypted
+	return nil
+}

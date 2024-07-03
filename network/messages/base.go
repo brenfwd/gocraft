@@ -32,7 +32,7 @@ func RegisterServerbound[T any](state constants.ClientState, id int) {
 	t := reflect.TypeFor[T]()
 	sbField, sbExists := t.FieldByName("Serverbound")
 	if !sbExists || !sbField.Anonymous {
-		panic(fmt.Sprint("registering non-serverbound or non-anonymously-typed serverbound type", t))
+		panic(fmt.Sprint("registering non-serverbound or non-anonymously-typed serverbound type ", t))
 	}
 	serverboundRegistry[serverboundRegistryKey{State: state, Id: id}] = t
 }
@@ -104,7 +104,7 @@ func RegisterClientbound[T any](state constants.ClientState, id int) {
 	t := reflect.TypeFor[T]()
 	sbField, sbExists := t.FieldByName("Clientbound")
 	if !sbExists || !sbField.Anonymous {
-		panic(fmt.Sprint("registering non-clientbound or non-anonymously-typed clientbound type", t))
+		panic(fmt.Sprint("registering non-clientbound or non-anonymously-typed clientbound type ", t))
 	}
 	clientboundRegistry[t] = clientboundRegistryValue{State: state, Id: id}
 }

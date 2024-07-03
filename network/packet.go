@@ -16,9 +16,7 @@ type PacketUnmarshaller struct {
 }
 
 func (pu *PacketUnmarshaller) Unmarshal(newData []byte) ([]Packet, error) {
-	if err := pu.buffer.Write(newData); err != nil {
-		return []Packet{}, err
-	}
+	pu.buffer.Write(newData)
 	if pu.buffer.Length() > 4*1024*1024 {
 		return []Packet{}, errors.New("buffer grew too big")
 	}

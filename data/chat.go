@@ -81,6 +81,55 @@ func (c *Chat) String() (string, error) {
 	return string(j), nil
 }
 
+func (c *Chat) ToNBT(rootCompoundName *string) *NBTValue {
+	children := make([]*NBTValue, 0)
+
+	// TODO: add support for `nbt:"<name>"` tag etc
+
+	if c.Text != nil {
+		children = append(children, NBTStringValue("text", *c.Text))
+	}
+
+	if c.Color != nil {
+		children = append(children, NBTStringValue("color", c.Color.String()))
+	}
+
+	if c.Font != nil {
+		children = append(children, NBTStringValue("font", string(*c.Font)))
+	}
+
+	if c.Bold {
+		children = append(children, NBTByteValue("bold", 1))
+	}
+
+	if c.Italic {
+		children = append(children, NBTByteValue("italic", 1))
+	}
+
+	if c.Underlined {
+		children = append(children, NBTByteValue("underlined", 1))
+	}
+
+	if c.Strikethrough {
+		children = append(children, NBTByteValue("strikethrough", 1))
+	}
+
+	if c.Obfuscated {
+		children = append(children, NBTByteValue("obfuscated", 1))
+	}
+
+	if len(c.Extra) > 0 {
+		extraChildren := make([]*NBTValue, 0)
+		for _, extra := range c.Extra {
+			extraChildren = append(extraChildren, extra.ToNBT(nil))
+		}
+		children = append(children, NBTListValue("extra", extraChildren))
+	}
+
+	root := NBTCompoundValue(rootCompoundName, children)
+	return root
+}
+
 func (c *Chat) SetText(value string) *Chat {
 	c.Text = &value
 	return c
@@ -117,9 +166,7 @@ func (c *Chat) AddExtra(newChat ...*Chat) *Chat {
 }
 
 func (c *Chat) BuildExtra(callback func(*Chat) *Chat) *Chat {
-	var c2 Chat
-	c.AddExtra(callback(&c2))
-	return c
+	return c.AddExtra(callback(MakeChat()))
 }
 
 func (c *Chat) SetBold(value bool) *Chat {

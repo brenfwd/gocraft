@@ -1,4 +1,4 @@
-package messages
+package serverbound
 
 import (
 	"fmt"

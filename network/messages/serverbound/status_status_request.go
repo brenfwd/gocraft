@@ -1,4 +1,4 @@
-package messages
+package serverbound
 
 import (
 	_ "embed"
@@ -23,10 +23,7 @@ type StatusServerboundStatusRequest struct {
 
 func (p *StatusServerboundStatusRequest) Handle(c *shared.ClientShared) error {
 	var wbuf data.Buffer
-	_, err := wbuf.WriteString(tempresponse)
-	if err != nil {
-		return err
-	}
+	wbuf.WriteString(tempresponse)
 	outPacket := network.Packet{Id: 0, Body: wbuf.Raw}
 	c.SendPacket(&outPacket)
 	return nil

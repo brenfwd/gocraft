@@ -19,6 +19,7 @@ type Connection struct {
 	Packets      <-chan Packet
 	unmarshaller PacketUnmarshaller
 	Keypair      *encryption.KeypairBytes
+	crypter      *encryption.Crypter
 }
 
 func MakeConnection(inner net.Conn, keypair *encryption.KeypairBytes) Connection {
@@ -30,6 +31,7 @@ func MakeConnection(inner net.Conn, keypair *encryption.KeypairBytes) Connection
 		packetsSend: packets,
 		Packets:     packets,
 		Keypair:     keypair,
+		crypter:     nil,
 	}
 }
 
@@ -43,7 +45,15 @@ func (c *Connection) Close() error {
 	return err
 }
 
+// Sets the crypter for the connection. When this is set, all data sent and received will be encrypted/decrypted.
+func (c *Connection) SetCrypter(crypter *encryption.Crypter) {
+	c.crypter = crypter
+}
+
 func (c *Connection) WriteBytes(bytes []byte) error {
+	if c.crypter != nil {
+		c.crypter.Encrypt(&bytes)
+	}
 	_, err := c.inner.Write(bytes)
 	return err
 }
@@ -75,7 +85,11 @@ func (c *Connection) Receive() {
 			return
 		}
 		if n != 0 {
+			if c.crypter != nil {
+				c.crypter.Decrypt(&buf)
+			}
 			// c.packetsSend <- Packet{Data: buf[0:n]}
+			log.Printf("Received buffer: %x [%#v]", buf[0:n], string(buf[0:n]))
 			packets, err := c.unmarshaller.Unmarshal(buf[0:n])
 			if err != nil {
 				fmt.Println("Error during unmarshal:", err)

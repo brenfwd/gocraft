@@ -53,6 +53,10 @@ func (s *Server) Run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
+			client.Shared.Mutex.Lock()
+			defer client.Shared.Mutex.Unlock()
+
 			client.Handle()
 		}()
 	}

@@ -2,6 +2,7 @@ package shared
 
 import (
 	"crypto/rand"
+	"sync"
 
 	"github.com/brenfwd/gocraft/constants"
 	"github.com/brenfwd/gocraft/network"
@@ -11,11 +12,13 @@ import (
 
 type ClientMessage interface{}
 type ClientShared struct {
+	Mutex                 sync.Mutex
 	C                     chan *ClientMessage
 	ListenerKeypair       *encryption.KeypairBytes
 	EncryptionVerifyToken [4]byte
 	AllegedUsername       string
 	AllegedUUID           uuid.UUID
+	SharedSecret          []byte
 }
 
 type ClientChangeState struct {
@@ -33,6 +36,13 @@ type ClientSend struct {
 
 func (i *ClientShared) SendPacket(packet *network.Packet) {
 	cm := ClientMessage(ClientSend{Packet: packet})
+	i.C <- &cm
+}
+
+type ClientEnableEncryption struct{}
+
+func (i *ClientShared) EnableEncryption() {
+	cm := ClientMessage(ClientEnableEncryption{})
 	i.C <- &cm
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brenfwd/gocraft/constants"
 	"github.com/brenfwd/gocraft/network"
+	"github.com/brenfwd/gocraft/network/encryption"
 	"github.com/brenfwd/gocraft/network/messages"
 	"github.com/brenfwd/gocraft/shared"
 )
@@ -46,10 +47,19 @@ func (c *Client) handleSharedMessage(msg *shared.ClientMessage) error {
 		c.State = inner.NewState
 	case shared.ClientSend:
 		log.Printf("Sending packet with ID 0x%02x (%d)", inner.Packet.Id, inner.Packet.Id)
-		log.Println(inner.Packet.Body)
+		log.Printf("Packet: %x", inner.Packet.Body)
 		if err := c.connection.WritePacket(inner.Packet); err != nil {
 			return err
 		}
+	case shared.ClientEnableEncryption:
+		log.Println("Enabling encryption")
+		crypter, err := encryption.NewCrypter(c.Shared.SharedSecret)
+		if err != nil {
+			return err
+		}
+		c.connection.SetCrypter(crypter)
+	default:
+		log.Printf("Unknown client shared message type: %T", inner)
 	}
 	return nil
 }
